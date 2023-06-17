@@ -83,7 +83,7 @@ async function showStart ()
 	richText.x = (app.renderer.width - 500) / 2;
 	richText.y = (app.renderer.height - 200) / 2;
 
-	const onKeydown = (e) => {
+	const onKeydown = () => {
 		app.stage.removeChildren();
 		window.removeEventListener("keydown", onKeydown);
 		init(0);
