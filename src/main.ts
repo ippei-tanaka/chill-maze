@@ -2,7 +2,7 @@ import './style.css';
 import * as PIXI from 'pixi.js';
 import {
 	Light,
-	CameraOrbitControl,
+	// CameraOrbitControl,
 	LightingEnvironment,
 	Camera,
 	Model
@@ -14,6 +14,15 @@ import {createKeyModel} from './key';
 import {createChestModel} from './chest';
 
 import * as TWEEN from '@tweenjs/tween.js';
+
+import { sound } from '@pixi/sound';
+
+const music = sound.add('music', '/sounds/music.ogg');
+music.loop = true;
+music.volume = 0.8;
+
+const sfx01 = sound.add('sfx01', '/sounds/sfx01.ogg');
+const sfx02 = sound.add('sfx02', '/sounds/sfx02.ogg');
 
 const app = new PIXI.Application<HTMLCanvasElement>({ 
 	resizeTo: window, 
@@ -49,6 +58,42 @@ const mapLayouts = [
 `
 ];
 
+async function showStart ()
+{
+	const style = new PIXI.TextStyle({
+		fontFamily: 'Arial',
+		fontSize: 50,
+		// fontStyle: 'italic',
+		fontWeight: 'bold',
+		fill: ['#ffffff'], // gradient
+		stroke: '#4a1850',
+		strokeThickness: 5,
+		dropShadow: true,
+		dropShadowColor: '#000000',
+		dropShadowBlur: 4,
+		dropShadowAngle: Math.PI / 6,
+		dropShadowDistance: 6,
+		wordWrap: true,
+		wordWrapWidth: 500,
+		lineJoin: 'round',
+		align: 'center'
+	});
+	
+	const richText = new PIXI.Text('Press any key to start', style);
+	richText.x = (app.renderer.width - 500) / 2;
+	richText.y = (app.renderer.height - 200) / 2;
+
+	const onKeydown = (e) => {
+		app.stage.removeChildren();
+		window.removeEventListener("keydown", onKeydown);
+		init(0);
+	};
+	window.addEventListener("keydown", onKeydown);
+	app.stage.addChild(richText);
+}
+
+showStart();
+
 async function init(layoutNumber:number) {
 	// let control = new CameraOrbitControl(app.view);
 
@@ -61,6 +106,8 @@ async function init(layoutNumber:number) {
 			LightingEnvironment.main.lights.push(light);
 		}
 	}
+
+	music.play();
 
 	const map = new Map(mapLayouts[layoutNumber]);
 
@@ -162,6 +209,7 @@ async function init(layoutNumber:number) {
 		{
 			box.content.visible = false;
 		}
+		sfx01.play();
 		// console.log('GOt Key');
 	};
 
@@ -191,6 +239,8 @@ async function init(layoutNumber:number) {
 		
 		app.stage.addChild(richText);
 		window.removeEventListener("keydown", onKeydown);
+		music.stop();
+		sfx02.play();
 
 		setTimeout(() => {
 			// console.log(layoutNumber, mapLayouts.length);
@@ -253,5 +303,3 @@ async function init(layoutNumber:number) {
 
 	app.ticker.add(onTick);
 }
-
-init(0);
