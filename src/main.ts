@@ -4,12 +4,15 @@ import {
 	Light,
 	CameraOrbitControl,
 	LightingEnvironment,
-	Camera
+	Camera,
+	Model
 } from 'pixi3d/pixi7';
 import Box from './box';
-import D from './key';
 import {Map, RoomType} from './map';
 import {Player} from './player';
+import {createKeyModel} from './key';
+import {createChestModel} from './chest';
+
 import * as TWEEN from '@tweenjs/tween.js';
 
 const app = new PIXI.Application<HTMLCanvasElement>({ 
@@ -20,129 +23,235 @@ const app = new PIXI.Application<HTMLCanvasElement>({
 
 document.body.appendChild(app.view);
 
-D();
+const mapLayouts = [
+`
+	##?#
+	####
+	##*#
+	#---
+`,
+`
+	######
+	#----#
+	##*###
+	#---##
+	#####?
+`,
+`
+	###-###-####
+	#-###-#-#--#
+	#--#--###--#
+	#--#-#--#--?
+	#-##-####---
+	##-------#########*
+	-###-###-#----
+	-#-###-####
+`
+];
 
-// let control = new CameraOrbitControl(app.view);
+async function init(layoutNumber:number) {
+	// let control = new CameraOrbitControl(app.view);
 
-let light1 = new Light()
-light1.position.set(0, 3, 0);
-LightingEnvironment.main.lights.push(light1);
-
-let light2 = new Light()
-light2.position.set(2, 3, 2);
-LightingEnvironment.main.lights.push(light2);
-
-let light3 = new Light()
-light3.position.set(7, 3, 7);
-LightingEnvironment.main.lights.push(light3);
-
-
-const map = new Map(`
-	########
-	#-#--#-#
-	#-#--#-#
-	######--
-	###?##--
-	-##--#--
-	--------
-	-#------
-`);
-
-map.forEach((z, x, room) => {
-	if (room)
+	for (let x = 0; x < 15; x += 3) 
 	{
-		const box = new Box();
-		box.x = x;
-		box.z = z;
-		app.stage.addChild(box);
-
-		if (map.getRoom(z, x - 1)) {
-			box.left.visible = false;
-		}
-		if (map.getRoom(z, x + 1)) {
-			box.right.visible = false;
-		}
-		if (map.getRoom(z - 1, x)) {
-			box.forward.visible = false;
-		}
-		if (map.getRoom(z + 1, x)) {
-			box.back.visible = false;
-		}
-		if (room === RoomType.KEY)
+		for (let z = 0; z < 15; z += 3) 
 		{
-			box.item.visible = true;
+			let light = new Light()
+			light.position.set(x, Math.floor(Math.random() * (9 - 3) + 3), z);
+			LightingEnvironment.main.lights.push(light);
 		}
 	}
-});
 
-const player = new Player(map);
+	const map = new Map(mapLayouts[layoutNumber]);
 
-Camera.main.rotationQuaternion.setEulerAngles(0, player.direction * 90, 0);
-Camera.main.x = player.x;
-Camera.main.y = -0.5;
-Camera.main.z = player.z;
-
-let isTweening = false;
-
-player.onMove((newZ, newX, oldZ, oldX) => {
-	new TWEEN.Tween({z: oldZ, x: oldX})
-		.to({z: newZ, x: newX}, 120)
-		.easing(TWEEN.Easing.Quadratic.InOut)
-		.onStart(() => {
-			isTweening = true;
-		})
-		.onUpdate(({z, x}) => {
-			Camera.main.z = z;
-			Camera.main.x = x;
-		})
-		.onComplete(() => {
-			isTweening = false;
-		})
-		.start();
-});
-
-player.onRotate((newRotation, oldRotation) => {
-	new TWEEN.Tween({r: oldRotation})
-		.to({r: newRotation}, 200)
-		.easing(TWEEN.Easing.Quadratic.InOut)
-		.onStart(() => {
-			isTweening = true;
-		})
-		.onUpdate(({r}) => {
-			Camera.main.rotationQuaternion.setEulerAngles(0, r * 90, 0);
-		})
-		.onComplete(() => {
-			isTweening = false;
-		})
-		.start();
-});
-
-window.addEventListener("keydown", (e) => {
-	if (!isTweening)
-	{
-		switch(e.key)
+	const boxes:Array<Array<Box>> = [];
+	let keys:Array<Model> = [];
+	let chests:Array<Model> = [];
+	
+	map.forEach(async (z, x, room) => {
+		if (room)
 		{
-			case "w":
-			case "ArrowUp":
-				player.MoveForward();
-				break;
-			case "s":
-			case "ArrowDown":
-				player.MoveBackward();
-				break;
-			case "a":
-			case "ArrowLeft":
-				player.TurnLeft();
-				break;
-			case "d":
-			case "ArrowRight":
-				player.TurnRight();
-				break;
-		}
-	}
-});
+			const box = new Box();
+			box.x = x;
+			box.z = z;
+			app.stage.addChild(box);
 
-app.ticker.add(() => {
-	TWEEN.update();
-	console.log(`z:${player.z}, x:${player.x}, direction:${player.direction}, rotation:${player.rotation}`);
-});
+			if (!boxes[z])
+			{
+				boxes[z] = [];
+			}
+			boxes[z][x] = box;
+
+			if (map.getRoom(z, x - 1)) {
+				box.left.visible = false;
+			}
+			if (map.getRoom(z, x + 1)) {
+				box.right.visible = false;
+			}
+			if (map.getRoom(z - 1, x)) {
+				box.forward.visible = false;
+			}
+			if (map.getRoom(z + 1, x)) {
+				box.back.visible = false;
+			}
+			if (room === RoomType.KEY)
+			{
+				const key = await createKeyModel();
+				box.content.addChild(key);
+				keys = [...keys, key];
+			} 
+			else if (room === RoomType.CHEST)
+			{
+				const chest = await createChestModel();
+				box.content.addChild(chest);
+				chests = [...chests, chest];
+			}
+		}
+	});
+	
+	const player = new Player(map);
+	
+	Camera.main.rotationQuaternion.setEulerAngles(0, player.direction * 90, 0);
+	Camera.main.x = player.x;
+	Camera.main.y = -0.5;
+	Camera.main.z = player.z;
+	
+	let isTweening = false;
+	
+	player.onMove = (newZ, newX, oldZ, oldX) => {
+		new TWEEN.Tween({z: oldZ, x: oldX})
+			.to({z: newZ, x: newX}, 120)
+			.easing(TWEEN.Easing.Quadratic.InOut)
+			.onStart(() => {
+				isTweening = true;
+			})
+			.onUpdate(({z, x}) => {
+				Camera.main.z = z;
+				Camera.main.x = x;
+			})
+			.onComplete(() => {
+				isTweening = false;
+			})
+			.start();
+	};
+	
+	player.onRotate = (newRotation, oldRotation) => {
+		new TWEEN.Tween({r: oldRotation})
+			.to({r: newRotation}, 200)
+			.easing(TWEEN.Easing.Quadratic.InOut)
+			.onStart(() => {
+				isTweening = true;
+			})
+			.onUpdate(({r}) => {
+				Camera.main.rotationQuaternion.setEulerAngles(0, r * 90, 0);
+			})
+			.onComplete(() => {
+				isTweening = false;
+			})
+			.start();
+	};
+
+	player.onGetKey = (z, x) => {
+		const key_thumb = PIXI.Sprite.from('./images/key_thumb.png');
+		app.stage.addChild(key_thumb);
+		key_thumb.x = 20;		
+		key_thumb.y = 20;		
+		key_thumb.scale = new PIXI.Point(0.5, 0.5);
+		const box = boxes[z][x];
+		if (box)
+		{
+			box.content.visible = false;
+		}
+		// console.log('GOt Key');
+	};
+
+	player.onGetChest = () => {
+		const style = new PIXI.TextStyle({
+			fontFamily: 'Arial',
+			fontSize: 50,
+			fontStyle: 'italic',
+			fontWeight: 'bold',
+			fill: ['#ffffff', '#ffff99'], // gradient
+			stroke: '#4a1850',
+			strokeThickness: 5,
+			dropShadow: true,
+			dropShadowColor: '#000000',
+			dropShadowBlur: 4,
+			dropShadowAngle: Math.PI / 6,
+			dropShadowDistance: 6,
+			wordWrap: true,
+			wordWrapWidth: 500,
+			lineJoin: 'round',
+			align: 'center'
+		});
+		
+		const richText = new PIXI.Text('You got a tresure!', style);
+		richText.x = (app.renderer.width - 500) / 2;
+		richText.y = (app.renderer.height - 200) / 2;
+		
+		app.stage.addChild(richText);
+		window.removeEventListener("keydown", onKeydown);
+
+		setTimeout(() => {
+			// console.log(layoutNumber, mapLayouts.length);
+			if (layoutNumber < mapLayouts.length - 1)
+			{
+				app.ticker.remove(onTick);
+				app.stage.removeChildren();
+				TWEEN.removeAll();
+				while (LightingEnvironment.main.lights.length > 0) {
+					LightingEnvironment.main.lights.pop()
+				}
+				init(layoutNumber + 1);
+			} else {
+				richText.text = "You beat all the levels!\nCongratulations!"
+			}
+		}, 2000);
+	};
+	
+	const onKeydown = (e) => {
+		if (!isTweening)
+		{
+			switch(e.key)
+			{
+				case "w":
+				case "ArrowUp":
+					player.MoveForward();
+					break;
+				case "s":
+				case "ArrowDown":
+					player.MoveBackward();
+					break;
+				case "a":
+				case "ArrowLeft":
+					player.TurnLeft();
+					break;
+				case "d":
+				case "ArrowRight":
+					player.TurnRight();
+					break;
+			}
+		}
+	};
+	
+	window.addEventListener("keydown", onKeydown);
+	
+	let time = 0;
+
+	const onTick = () => {
+		TWEEN.update();
+		keys.forEach(key => {
+			key.rotationQuaternion.setEulerAngles(time / 2, time, 0);
+		});
+		time++;
+
+		chests.forEach(chest => {
+			chest.rotationQuaternion.setEulerAngles(0, time / 2, 0);
+		});
+		// console.log(`z:${player.z}, x:${player.x}, direction:${player.direction}, rotation:${player.rotation}`);
+	};
+
+	app.ticker.add(onTick);
+}
+
+init(0);

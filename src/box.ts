@@ -7,7 +7,6 @@ import {
     Container3D
 } from 'pixi3d/pixi7';
 
-
 // const material = new StandardMaterial();
 // material.unlit = false; // Set unlit = true to disable all lighting.
 // material.baseColor = new Color(1, 1, 1, 1); // The base color will be blended together with base color texture (if available).
@@ -53,7 +52,7 @@ export default class Box extends Container3D {
     public left: Container3D;
     public floor: Container3D;
     public ceiling: Container3D;
-    public item: Mesh3D;
+    public content: Container3D;
 
     constructor ()
     {
@@ -109,11 +108,13 @@ export default class Box extends Container3D {
         // });
         // this.addChild(center);
 
-        const item = Mesh3D.createCube(createMaterial());
-        item.x = 0;
-        item.y = -0.9;
-        item.z = 0;
-        item.scale = new Point3D(0.05, 0.05, 0.05);
+        // const item = Mesh3D.createCube(createMaterial());
+        const content = new Container3D();
+        content.x = 0;
+        content.y = -0.9;
+        content.z = 0;
+        content.scale = new Point3D(0.8, 0.8, 0.8);
+        // item.scale = new Point3D(0.05, 0.05, 0.05);
         // item.interactive = true;
         // item.hitArea = new PickingHitArea(item);
         // item.on("pointerdown", () => {
@@ -122,8 +123,7 @@ export default class Box extends Container3D {
         // item.on("pointerup", () => {
         //     item.scale.set(0.05);
         // });
-        item.visible = false;
-        this.addChild(item);
+        this.addChild(content);
 
         // Mesh3D.createQuad()
 
@@ -132,7 +132,7 @@ export default class Box extends Container3D {
         this.right = right;
         this.left = left;
         this.floor = floor;
-        this.item = item;
+        this.content = content;
     }
 
 }

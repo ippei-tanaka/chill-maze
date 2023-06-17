@@ -1,16 +1,21 @@
-import { Map } from "./map";
+import { Map, RoomType } from "./map";
 
 type OnMoveCallback = (newZ:number, newX:number, oldZ:number, oldX:number) => void;
 type OnRotateCallback = (newRotation:number, oldRotation:number) => void;
+type OnGetKeyCallback = (z:number, x:number) => void;
+type OnGetChestCallback = (z:number, x:number) => void;
 
 export class Player 
 {
     private _z = 0;
     private _x = 0;
     private _rotation = 0;
-    private _onMoveCallback:OnMoveCallback = () => {};
-    private _onRotateCallback:OnRotateCallback = () => {};
+    public onMove:OnMoveCallback = () => {};
+    public onRotate:OnRotateCallback = () => {};
+    public onGetKey:OnGetKeyCallback = () => {};
+    public onGetChest:OnGetChestCallback = () => {};
     private _map:Map;
+    private _hasKey:boolean = false;
 
     constructor (map:Map)
     {
@@ -31,16 +36,6 @@ export class Player
 
     get direction () {
         return ((this._rotation % 4) + 4) % 4;
-    }
-
-    onMove (callback:OnMoveCallback)
-    {
-        this._onMoveCallback = callback;
-    }
-
-    onRotate (callback:OnRotateCallback)
-    {
-        this._onRotateCallback = callback;
     }
 
     MoveForward ()
@@ -68,8 +63,10 @@ export class Player
                 break;
         }
 
-        if (oldZ !== this.z || oldX !== this.x)
-            this._onMoveCallback(this._z, this._x, oldZ, oldX);
+        if (oldZ !== this.z || oldX !== this.x) {
+            this.onMove(this.z, this.x, oldZ, oldX);
+            this._CheckOutRoom();
+        }
     }
 
     MoveBackward ()
@@ -98,21 +95,37 @@ export class Player
                 break;
         }
 
-        if (oldZ !== this.z || oldX !== this.x)
-            this._onMoveCallback(this.z, this.x, oldZ, oldX);
+        if (oldZ !== this.z || oldX !== this.x) {
+            this.onMove(this.z, this.x, oldZ, oldX);
+            this._CheckOutRoom();
+        }
     }
 
     TurnLeft ()
     {
         const oldRotation = this.rotation;
         this._rotation += 1;
-        this._onRotateCallback(this.rotation, oldRotation);
+        this.onRotate(this.rotation, oldRotation);
     }
 
     TurnRight ()
     {
         const oldRotation = this.rotation;
         this._rotation -= 1;
-        this._onRotateCallback(this.rotation, oldRotation);
+        this.onRotate(this.rotation, oldRotation);
+    }
+
+    private _CheckOutRoom ()
+    {
+        const room = this._map.getRoom(this.z, this.x);
+        if (room === RoomType.KEY)
+        {
+            this.onGetKey(this.z, this.x);
+            this._map.setRoom(this.z, this.x, RoomType.EMPTY);
+            this._hasKey = true;
+        } else if (this._hasKey && room === RoomType.CHEST)
+        {
+            this.onGetChest(this.z, this.x);
+        }
     }
 }

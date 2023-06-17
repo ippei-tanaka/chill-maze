@@ -1,7 +1,8 @@
 
 export enum RoomType {
     EMPTY = "EMPTY",
-    KEY = "KEY"
+    KEY = "KEY",
+    CHEST = "CHEST"
 }
 
 export class Map 
@@ -27,7 +28,13 @@ export class Map
                 else if (strArr[z][x] === '?')
                 {
                     this.rooms[z][x] = RoomType.KEY;
-                } else {
+                } 
+                else if (strArr[z][x] === '*')
+                {
+                    this.rooms[z][x] = RoomType.CHEST;
+                } 
+                else 
+                {
                     this.rooms[z][x] = null;
                 }
             }
@@ -41,6 +48,16 @@ export class Map
         } catch (e)
         {
             return null;
+        }
+    }
+
+    public setRoom (z:number, x:number, value:RoomType)
+    {
+        try {
+            this.rooms[z][x] = value;
+        } catch (e)
+        {
+            
         }
     }
 
