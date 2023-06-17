@@ -122,6 +122,7 @@ export default class Box extends Container3D {
         // item.on("pointerup", () => {
         //     item.scale.set(0.05);
         // });
+        item.visible = false;
         this.addChild(item);
 
         // Mesh3D.createQuad()
