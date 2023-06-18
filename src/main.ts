@@ -81,7 +81,7 @@ async function showStart ()
 	
 	const richText = new PIXI.Text('Press any key to start', style);
 	richText.x = (app.renderer.width - 500) / 2;
-	richText.y = (app.renderer.height - 200) / 2;
+	richText.y = (app.renderer.height - 120) / 2;
 
 	const onKeydown = () => {
 		app.stage.removeChildren();
