@@ -12,20 +12,15 @@ import {Map, RoomType} from './map';
 import {Player} from './player';
 import {createKeyModel} from './key';
 import {createChestModel} from './chest';
+import type { Sound } from '@pixi/sound';
+import {load} from './sound-loader';
 
 import * as TWEEN from '@tweenjs/tween.js';
 
-import { sound } from '@pixi/sound';
-
-const music = sound.add('music', '/sounds/music.ogg');
-music.loop = true;
-music.volume = 0.8;
-
-const sfx01 = sound.add('sfx01', '/sounds/sfx01.ogg');
-const sfx02 = sound.add('sfx02', '/sounds/sfx02.ogg');
-
 const app = new PIXI.Application<HTMLCanvasElement>({ 
-	resizeTo: window, 
+	// resizeTo: window, 
+	width: 720,
+	height: 720,
 	backgroundColor: 0xcccccc, 
 	antialias: true
 });
@@ -58,6 +53,11 @@ const mapLayouts = [
 `
 ];
 
+let music:Sound = null;
+let sfx01:Sound = null;
+let sfx02:Sound = null;
+
+
 async function showStart ()
 {
 	const style = new PIXI.TextStyle({
@@ -78,10 +78,6 @@ async function showStart ()
 		lineJoin: 'round',
 		align: 'center'
 	});
-	
-	const richText = new PIXI.Text('Press any key to start', style);
-	richText.x = (app.renderer.width - 500) / 2;
-	richText.y = (app.renderer.height - 120) / 2;
 
 	const onKeydown = () => {
 		app.stage.removeChildren();
@@ -89,12 +85,22 @@ async function showStart ()
 		init(0);
 	};
 	window.addEventListener("keydown", onKeydown);
+	
+	const richText = new PIXI.Text('Press any key to start', style);
+	richText.x = (app.renderer.width - 400) / 2;
+	richText.y = (app.renderer.height - 120) / 2;
 	app.stage.addChild(richText);
 }
 
 showStart();
 
 async function init(layoutNumber:number) {
+
+	music = await load('./sounds/music.ogg');
+	music.loop = true;
+	music.volume = 0.8;
+	sfx01 = await load('./sounds/sfx01.ogg');
+	sfx02 = await load('./sounds/sfx02.ogg');
 	// let control = new CameraOrbitControl(app.view);
 
 	for (let x = 0; x < 15; x += 3) 
@@ -233,8 +239,8 @@ async function init(layoutNumber:number) {
 			align: 'center'
 		});
 		
-		const richText = new PIXI.Text('You got a tresure!', style);
-		richText.x = (app.renderer.width - 500) / 2;
+		const richText = new PIXI.Text('You got a treasure!', style);
+		richText.x = (app.renderer.width - 450) / 2;
 		richText.y = (app.renderer.height - 200) / 2;
 		
 		app.stage.addChild(richText);
@@ -254,6 +260,7 @@ async function init(layoutNumber:number) {
 				}
 				init(layoutNumber + 1);
 			} else {
+				sfx02.play();
 				richText.text = "You beat all the levels!\nCongratulations!"
 			}
 		}, 2000);
