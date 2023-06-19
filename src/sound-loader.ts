@@ -1,24 +1,53 @@
-import * as PIXI from 'pixi.js';
-import type { Sound } from '@pixi/sound';
+export type Sound = {
+    start: () => {},
+    stop: () => {}
+}
 
-let isInitialized = false;
-
-export const load = async (url:string) => 
+export const load = async (url:string, volume = 1, loop = false) => 
 {
-    if (!isInitialized)
-    {
-        const PIXI_SOUND = await import('@pixi/sound');
-        PIXI.extensions.add({
-            extension: PIXI.ExtensionType.LoadParser,
-            test: (url) => url.endsWith('ogg'),
-            async load(src) {
-                return new Promise((resolve) => {
-                    resolve(PIXI_SOUND.Sound.from(src));
-                });
-            }
-        });
-        isInitialized = true;
-    }
+    const context = new AudioContext();
+    const audioBuffer = await fetch(url)
+        .then(res => res.arrayBuffer())
+        .then(ArrayBuffer => context.decodeAudioData(ArrayBuffer));
     
-    return await PIXI.Assets.load<Sound>(url);
+    let source:AudioBufferSourceNode = null;
+    let gainNode:GainNode = null;
+
+    return {
+
+        start () {
+            if (source !== null || gainNode !== null)
+            {
+                source.stop();
+                source.disconnect();
+                gainNode.disconnect();
+            }
+
+            source = context.createBufferSource();
+            source.buffer = audioBuffer;
+            source.loop = loop;
+        
+            gainNode = context.createGain();
+            gainNode.gain.value = volume;
+            gainNode.connect(context.destination);
+            
+            // now instead of connecting to aCtx.destination, connect to the gainNode
+            source.connect(gainNode);
+            // source.connect(context.destination);
+            source.start();
+        },
+
+        stop ()
+        {
+            if (source !== null || gainNode !== null)
+            {
+                source.stop();
+                source.disconnect();
+                gainNode.disconnect();
+                source = null;
+                gainNode = null;
+            }
+        }
+
+    } as Sound;
 };

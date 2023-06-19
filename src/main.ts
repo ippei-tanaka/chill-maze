@@ -12,8 +12,7 @@ import {Map, RoomType} from './map';
 import {Player} from './player';
 import {createKeyModel} from './key';
 import {createChestModel} from './chest';
-import type { Sound } from '@pixi/sound';
-import {load} from './sound-loader';
+import {load, Sound} from './sound-loader';
 
 import * as TWEEN from '@tweenjs/tween.js';
 
@@ -57,7 +56,6 @@ let music:Sound = null;
 let sfx01:Sound = null;
 let sfx02:Sound = null;
 
-
 async function showStart ()
 {
 	const style = new PIXI.TextStyle({
@@ -79,10 +77,12 @@ async function showStart ()
 		align: 'center'
 	});
 
+
+
 	const onKeydown = () => {
 		app.stage.removeChildren();
 		window.removeEventListener("keydown", onKeydown);
-		init(0);
+		init();
 	};
 	window.addEventListener("keydown", onKeydown);
 	
@@ -94,13 +94,18 @@ async function showStart ()
 
 showStart();
 
-async function init(layoutNumber:number) {
+async function init ()
+{
+	music = await load('./sounds/music.mp3', 0.7, true);
+	sfx01 = await load('./sounds/sfx01.mp3');
+	sfx02 = await load('./sounds/sfx02.mp3');
+	startGame(0);
+}
 
-	music = await load('./sounds/music.ogg');
-	music.loop = true;
-	music.volume = 0.8;
-	sfx01 = await load('./sounds/sfx01.ogg');
-	sfx02 = await load('./sounds/sfx02.ogg');
+async function startGame(layoutNumber:number) {
+
+	music.start();
+
 	// let control = new CameraOrbitControl(app.view);
 
 	for (let x = 0; x < 15; x += 3) 
@@ -112,8 +117,6 @@ async function init(layoutNumber:number) {
 			LightingEnvironment.main.lights.push(light);
 		}
 	}
-
-	music.play();
 
 	const map = new Map(mapLayouts[layoutNumber]);
 
@@ -215,7 +218,7 @@ async function init(layoutNumber:number) {
 		{
 			box.content.visible = false;
 		}
-		sfx01.play();
+		sfx01.start();
 		// console.log('GOt Key');
 	};
 
@@ -246,7 +249,7 @@ async function init(layoutNumber:number) {
 		app.stage.addChild(richText);
 		window.removeEventListener("keydown", onKeydown);
 		music.stop();
-		sfx02.play();
+		sfx02.start();
 
 		setTimeout(() => {
 			// console.log(layoutNumber, mapLayouts.length);
@@ -258,9 +261,9 @@ async function init(layoutNumber:number) {
 				while (LightingEnvironment.main.lights.length > 0) {
 					LightingEnvironment.main.lights.pop()
 				}
-				init(layoutNumber + 1);
+				startGame(layoutNumber + 1);
 			} else {
-				sfx02.play();
+				sfx02.start();
 				richText.text = "You beat all the levels!\nCongratulations!"
 			}
 		}, 2000);
